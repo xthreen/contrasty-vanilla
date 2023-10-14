@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>Is it accessible?</title>
+  </head>
+  <body>
+    <div class="container">
+      <header id="colorsHeader">Are these two colours accessible?</header>
+      <main>
+        <div class="color-selector">
+          <label for="colorSelect" class="selector-label">Text Size</label>
+          <select id="colorSelect" name="colorSelect" class="selector-inner">
+            <option value="large">Large Text</option>
+            <option value="small">Small Text</option>
+          </select>
+        </div>
+        <article>
+          <label for="rgbOne">RGB Value One</label>
+          <input type="color" id="rgbOne" name="rgbOne" value="#ffffff" />
+          <div class="output-rgbOne">
+            <label class="output-label" for="rgbOneDisplay">Value as HEX</label>
+            <input
+              type="text"
+              id="rgbOneDisplay"
+              name="rgbOneDisplay"
+              value="#FFFFFF"
+              readonly
+              class="output-inner"
+            />
+          </div>
+        </article>
+        <article>
+          <label for="rgbTwo">RGB Value Two</label>
+          <input type="color" id="rgbTwo" name="rgbTwo" value="#000000" />
+          <div class="output-rgbTwo">
+            <label class="output-label" for="rgbTwoDisplay">Value as HEX</label>
+            <input
+              type="text"
+              id="rgbTwoDisplay"
+              name="rgbTwoDisplay"
+              value="#000000"
+              readonly
+              class="output-inner"
+            />
+          </div>
+        </article>
+        <article id="loremBg" name="loremBg">
+          <span id="lorem" name="lorem"
+            >Lorem ipsum dolor sit amet consectetur adipisicing elit...</span
+          >
+        </article>
+      </main>
+      <footer>
+        <p id="lineRatio">Contrast Ratio: <span id="ratio"></span></p>
+        <p id="lineAccessible">
+          Is Accessible: <span id="isAccessible"></span>
+        </p>
+      </footer>
+    </div>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        function hexToRgb(hex) {
+          const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+          return result
+            ? [
+                parseInt(result[1], 16),
+                parseInt(result[2], 16),
+                parseInt(result[3], 16),
+              ]
+            : [0, 0, 0];
+        }
+        function toLinear(c = 0) {
+          const color = c / 255.0;
+          if (color <= 0.03928) {
+            return color / 12.92;
+          } else {
+            return Math.pow((color + 0.055) / 1.055, 2.4);
+          }
+        }
+        function relativeLuminance(rgb = [0, 0, 0]) {
+          const [r, g, b] = rgb;
+          const [RED, GREEN, BLUE] = [toLinear(r), toLinear(g), toLinear(b)];
+          return 0.2126 * RED + 0.7152 * GREEN + 0.0722 * BLUE;
+        }
+        function calculateContrast(rgbOne = [0, 0, 0], rgbTwo = [0, 0, 0]) {
+          let L1 = relativeLuminance(rgbOne);
+          let L2 = relativeLuminance(rgbTwo);
+
+          if (L1 > L2) {
+            [L1, L2] = [L2, L1];
+          }
+
+          const ratio = (L2 + 0.05) / (L1 + 0.05);
+
+          let isAccessible = false;
+
+          if (textSize === "small") {
+            isAccessible = ratio >= 3;
+          } else {
+            isAccessible = ratio >= 4.5;
+          }
+
+          return {
+            ratio,
+            isAccessible,
+          };
+        }
+        function refreshContrast() {
+          const result = calculateContrast(rgbOne, rgbTwo, textSize);
+          document.getElementById("ratio").innerText = result.ratio.toFixed(2);
+          document.getElementById("isAccessible").innerText =
+            result.isAccessible;
+          document.getElementById("isAccessible").style.color =
+            result.isAccessible ? "#00ff00" : "#ff0000";
+          document.getElementById("lorem").style.color =
+            document.getElementById("rgbOne").value;
+          document.getElementById("lorem").style.backgroundColor =
+            document.getElementById("rgbTwo").value;
+          document.getElementById("rgbOneDisplay").value = document
+            .getElementById("rgbOne")
+            .value.toUpperCase();
+          document.getElementById("rgbTwoDisplay").value = document
+            .getElementById("rgbTwo")
+            .value.toUpperCase();
+        }
+
+        let rgbOne = hexToRgb(document.getElementById("rgbOne").value);
+        let rgbTwo = hexToRgb(document.getElementById("rgbTwo").value);
+        let textSize = "large";
+
+        document
+          .getElementById("colorSelect")
+          .addEventListener("change", function () {
+            textSize = this.value;
+            refreshContrast();
+          });
+
+        document
+          .getElementById("rgbOne")
+          .addEventListener("input", function () {
+            rgbOne = hexToRgb(this.value);
+            refreshContrast();
+          });
+
+        document
+          .getElementById("rgbTwo")
+          .addEventListener("input", function () {
+            rgbTwo = hexToRgb(this.value);
+            refreshContrast();
+          });
+
+        refreshContrast();
+      });
+    </script>
+  </body>
+  <style>
+    *,
+    ::before,
+    ::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      text-shadow: 1px 1px 1px #000;
+    }
+    body {
+      font-family: sans-serif;
+      font-size: 2rem;
+      line-height: 1.5;
+      background-image: linear-gradient(to bottom, #000, #1d1d1d, #2f2f2f);
+    }
+    html,
+    body,
+    .container {
+      height: 100vh;
+    }
+    .container {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      width: 100%;
+    }
+    #colorsHeader {
+      background-image: linear-gradient(to right, #551f02, #91330d, #8f3809);
+      color: #ffffff;
+      padding: 1rem;
+      text-align: center;
+      font-weight: 700;
+      font-size: 3rem;
+      width: 100%;
+    }
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      text-align: center;
+      width: 100%;
+    }
+    select {
+      border: 1px solid #000;
+      border-radius: 0.25rem;
+      margin-bottom: 1rem;
+      padding: 0.5rem;
+      font-size: 1.5rem;
+      width: 80%;
+    }
+    article {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+    #lorem {
+      padding: 1rem;
+      border-radius: 0.25rem;
+    }
+    label {
+      margin-bottom: 0.5rem;
+    }
+    input {
+      border: 1px solid #000000;
+      border-radius: 0.25rem;
+      padding: 0.5rem;
+      width: 96%;
+      height: 5rem;
+    }
+    footer {
+      width: 100%;
+      background-image: linear-gradient(to right, #551f02, #91330d, #551f02);
+      color: #ffffff;
+      padding: 1rem;
+      text-align: center;
+    }
+    #lineRatio {
+      margin-bottom: 0.5rem;
+    }
+    #lineAccessible {
+      margin-bottom: 0.5rem;
+    }
+
+    .color-selector {
+      width: 100%;
+      position: relative;
+    }
+    .selector-label {
+      position: absolute;
+      top: 0;
+      left: 1%;
+      font-size: 0.7rem;
+      pointer-events: none;
+      text-shadow: 1px 1px 1px #000;
+      z-index: 1;
+    }
+    .selector-inner {
+      font-size: 1rem;
+      width: 100%;
+      z-index: 2;
+    }
+    .output-rgbOne {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin-bottom: 1rem;
+      max-height: fit-content;
+    }
+    .output-rgbTwo {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin-bottom: 1rem;
+      max-height: fit-content;
+    }
+    .output-label {
+      position: absolute;
+      top: 0;
+      left: 4%;
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      pointer-events: none;
+    }
+    .output-inner {
+      border: 1px solid #000000;
+      border-radius: 0.25rem;
+      padding-right: 0.5rem;
+      padding-left: 0.5rem;
+      width: 100%;
+      font-weight: 700;
+      font-size: 1.3rem;
+      text-align: end;
+      max-height: fit-content;
+    }
+  </style>
+</html>
